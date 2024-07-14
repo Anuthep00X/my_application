@@ -1,22 +1,30 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:favorite/services/auth_service.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app.dart';
+import 'package:http/http.dart' as http;
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+
+  Future<void> checkLogin() async {
+    final prefs = await _prefs;
+    final token = prefs.getString('token');
+    if (token != null) {
+      Navigator.of(context).pushReplacementNamed('/home');
+    }
+  }
 
   @override
   void initState() {
@@ -28,9 +36,22 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  Future<void> login() async {
-    bool loggedIn = await AuthService.login(_email.text, _password.text);
-    if (loggedIn) {
+  Future login() async {
+    final response = await http.post(
+      Uri.parse('$API_URL/api/auth/login'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, String>{
+        'email': _email.text,
+        'password': _password.text,
+      }),
+    );
+
+    print(response.statusCode);
+    if (response.statusCode == 200) {
+      final prefs = await _prefs;
+      prefs.setString('token', jsonDecode(response.body)['token']);
       Navigator.of(context).pushReplacementNamed('/home');
     }
   }
@@ -42,10 +63,10 @@ class _LoginScreenState extends State<LoginScreen> {
         title: const Text('Login'),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            const Text('โปรดเข้าสู่ระบบ'),
+            Text('โปรดเข้าสู่ระบบ'),
             TextFormField(
               controller: _email,
               decoration: const InputDecoration(
@@ -62,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ElevatedButton(
               onPressed: login,
               child: const Text('เข้าสู่ระบบ'),
-            ),
+            )
           ],
         ),
       ),
