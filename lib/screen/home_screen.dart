@@ -2,12 +2,10 @@ import 'dart:convert';
 
 import 'package:card_swiper/card_swiper.dart';
 import 'package:favorite/config/app.dart';
+import 'package:favorite/screen/page_detail_screen.dart';
 import 'package:favorite/services/auth_service.dart';
 import 'package:favorite/services/page_service.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/foundation/key.dart';
-import 'package:flutter/src/widgets/framework.dart';
 import 'package:http/http.dart' as http;
 
 class HomeScreen extends StatefulWidget {
@@ -19,7 +17,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> banners = [];
-  List<dynamic> pages = [];
+  List<dynamic> _pages = [];
   Future<void> fetchBanners() async {
     try {
       final response = await http.get(Uri.parse('$API_URL/api/banners'));
@@ -35,10 +33,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> fetchPages() async {
     try {
-      List<dynamic> pages = await PageService.fetchPages();
-      setState(() {
-        this.pages = pages;
-      });
+      PageService.fetchPages().then(
+        (value) {
+          setState(() {
+            _pages = value;
+          });
+        },
+      );
     } catch (e) {
       print(e);
     }
@@ -71,10 +72,17 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ListView.builder(
               shrinkWrap: true,
-              itemCount: pages.length,
+              itemCount: _pages.length,
               itemBuilder: (context, index) {
                 return ListTile(
-                  title: Text(pages[index]['title']),
+                  onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) => PagedetailScreen(
+                        id: _pages[index]['id'],
+                      ),
+                    ));
+                  },
+                  title: Text(_pages[index]['title']),
                 );
               },
             ),
